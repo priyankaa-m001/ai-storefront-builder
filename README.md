@@ -1,5 +1,7 @@
 # AI Storefront Builder
 
+**Live demo:** https://ai-storefront-builder.vercel.app/
+
 Made by Priyanka and Onkar Mhaske — built for the PayPal AI Hackathon 2026.
 
 A seller describes their shop in a few words, and AI generates a complete online store — theme, colours, layout, product descriptions and prices. The seller previews it, edits the products, and customers buy through PayPal checkout.

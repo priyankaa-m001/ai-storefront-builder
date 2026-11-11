@@ -4,7 +4,7 @@ const PALETTES = ["ember", "forest", "noir", "candy", "royal", "pastel"];
 const FONTS = ["serif", "modern", "warm"];
 const LAYOUTS = ["grid", "editorial", "list"];
 const CARDS = ["Soft & rounded cards", "Sharp editorial cards", "Chunky rounded cards", "Clean minimal cards"];
-const CATS = ["crochet", "candles", "skincare", "soap", "bakery", "jewelry", "flowers", "other"];
+const CATS = ["crochet", "candles", "skincare", "soap", "bakery", "jewelry", "flowers", "plants", "coffee", "books", "toys", "clothing", "other"];
 
 const SYSTEM = `You design small online shops. Given a seller's description, return ONE JSON object and nothing else:
 {
@@ -23,7 +23,7 @@ const SYSTEM = `You design small online shops. Given a seller's description, ret
   "features": { "todaysDrop": bool, "stockBadges": bool, "giftBundle": bool, "story": bool },
   "products": [ { "name": string, "description": string (max 160 chars), "price": number in USD, "badge": string (max 18 chars, may be ""), "stock": integer 1-20 } ]  // 3 to 5 products
 }
-Rules: match the mood words (dark/moody -> noir, bright/playful -> candy, luxury -> royal + serif, botanical -> forest, pastel/cozy -> pastel/ember). Turn on only features the seller asked for or clearly implied. If the seller wants limited stock, use small stock numbers. Prices must be realistic for handmade/small-batch goods. Do not invent certifications, medical claims, or awards. IMPORTANT: products must be the actual items the seller sells, using the seller's exact product words. If the seller sells soap, every product must be a soap product (soap bars, soap sets) named with its scent/ingredients — never generic skincare like serum, moisturiser, toner or face oil. If the seller sells candles, products must be candles. If the seller sells flowers, every product must be a flower product (bouquets, bunches, arrangements) named with the flower type — never candles, soap or skincare. The store name, tagline and intro must also name the actual product type the seller sells.`;
+Rules: match the mood words (dark/moody -> noir, bright/playful -> candy, luxury -> royal + serif, botanical -> forest, pastel/cozy -> pastel/ember). Turn on only features the seller asked for or clearly implied. If the seller wants limited stock, use small stock numbers. Prices must be realistic for handmade/small-batch goods. Do not invent certifications, medical claims, or awards. IMPORTANT: products must be the actual items the seller sells, using the seller's exact product words. If the seller sells soap, every product must be a soap product (soap bars, soap sets) named with its scent/ingredients — never generic skincare like serum, moisturiser, toner or face oil. If the seller sells candles, products must be candles. If the seller sells flowers, every product must be a flower product (bouquets, bunches, arrangements) named with the flower type — never candles, soap or skincare. If the seller sells plants, coffee, books, toys or clothing, every product must be those items — never candles. The store name, tagline and intro must also name the actual product type the seller sells.`;
 
 module.exports = async (req, res) => {
   if (!guard(req, res)) return;

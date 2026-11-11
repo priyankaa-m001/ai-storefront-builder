@@ -74,6 +74,6 @@ module.exports = async (req, res) => {
     });
   } catch (e) {
     console.error("generate failed:", e.message);
-    res.status(502).json({ error: "AI generation failed" });
+    res.status(502).json({ error: "AI generation failed: " + String(e.message || e).slice(0, 200) });
   }
 };

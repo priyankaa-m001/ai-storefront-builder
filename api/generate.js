@@ -33,7 +33,7 @@ module.exports = async (req, res) => {
     if (prompt.length < 8) return res.status(400).json({ error: "Describe your store in a few words" });
 
     const raw = await chatJSON({
-      model: process.env.TEXT_MODEL || "llama-3.1-8b-instant",
+      model: process.env.TEXT_MODEL || "openai/gpt-oss-120b",
       messages: [
         { role: "system", content: SYSTEM },
         { role: "user", content: `Store name (may be empty): ${shopName || "(none)"}\nSeller description: ${prompt}` },

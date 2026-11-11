@@ -36,7 +36,7 @@ Customers check out with PayPal, and stock goes down after each payment.
 
 ### Option 1 — Just open the file (demo, AI uses an offline fallback)
 
-Open `index.html` in a browser. The store works with sample products. AI generation needs a server — see Option 2.
+Open `index.html` in a browser. The store works with sample products. Live AI generation calls `/api/generate` on the server — see Option 2; if that call fails, the page shows a sample store and says so.
 
 ### Option 2 — Deploy on Vercel (live, with real AI)
 
@@ -47,7 +47,7 @@ Open `index.html` in a browser. The store works with sample products. AI generat
 
 ## AI tools used
 
-- **Groq** — `llama-3.3-70b-versatile` for store generation (design, products, prices), and `meta-llama/llama-4-scout-17b-16e-instruct` for writing product name/description from a photo.
+- **Groq** — `openai/gpt-oss-120b` for store generation (design, products, prices), and `meta-llama/llama-4-scout-17b-16e-instruct` for writing product name/description from a photo.
 - The AI returns structured JSON, which the frontend validates and renders as a store. No invented certifications, medical claims or awards.
 
 ## PayPal

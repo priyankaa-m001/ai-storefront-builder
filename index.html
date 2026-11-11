@@ -760,7 +760,7 @@
             </aside>
           </div>
 
-          <p class="stage-foot">How the split works here: you set the store name and every product's name, photo, price, description and quantity — nothing else. Everything visual is AI-decided from your description: theme, colours, fonts, layout, card style, intro, headings, and which sections exist (Today's drop, stock badges, gift bundles, maker story). Stock is tracked in this page — buyers can't exceed it and paid PayPal sandbox orders reduce it, flipping pieces to “Sold out” at zero. Saving stock/photos beyond this page and connecting a real PayPal sandbox app need the small serverless step; generation, photo copy and checkout are simulated in-browser in this demo, shaped for that swap.</p>
+          <p class="stage-foot">How the split works here: you set the store name and every product's name, photo, price, description and quantity — nothing else. Everything visual is AI-decided from your description: theme, colours, fonts, layout, card style, intro, headings, and which sections exist (Today's drop, stock badges, gift bundles, maker story). Stock is tracked in this page — buyers can't exceed it and paid PayPal sandbox orders reduce it, flipping pieces to “Sold out” at zero. Saving stock/photos beyond this page and connecting a real PayPal sandbox app need the small serverless step; photo copy and checkout are still simulated in-browser in this demo. Generation calls the Groq AI API on the server (/api/generate) — if that call fails, a sample store is shown instead and the page says so.</p>
         </div>
       </main>
     </div>
@@ -1394,7 +1394,7 @@
         this.setAttribute("aria-pressed","true"); $("devDesktop").setAttribute("aria-pressed","false");
       });
 
-      /* ============ AI generation (simulated) ============ */
+      /* ============ AI generation (live Groq API, sample fallback) ============ */
       function detectTemplate(prompt){
         var t = prompt.toLowerCase();
         if (/(crochet|yarn|scrunchie|headband|hair clip|keychain|amigurumi)/.test(t)) return "crochet";
@@ -1447,19 +1447,77 @@
         "Deciding which sections this store gets: Today's drop, stock badges, gift bundles, story.",
         "Rendering the store JSON into your live preview."
       ];
+      function buildStoreFromApi(data, promptText, shopName){
+        var baseKey = (data.category && TEMPLATES[data.category]) ? data.category : detectTemplate(promptText);
+        if (data.category === "soap") baseKey = "skincare"; // soap uses the skincare photos
+        currentKey = baseKey;
+        var tpl = clone(TEMPLATES[baseKey]);
+        tpl.name = shopName || data.name || tpl.name;
+        tpl.slug = tpl.name.toLowerCase().replace(/[^a-z0-9]+/g,"").slice(0,24) + ".store";
+        tpl.tagline = data.tagline || tpl.tagline;
+        tpl.sub = data.intro || tpl.sub;
+        tpl.sectionTitle = data.sectionTitle || tpl.sectionTitle;
+        tpl.storyTitle = data.storyTitle || tpl.storyTitle;
+        tpl.storyText = data.storyText || tpl.storyText;
+        tpl.sig = data.signature || tpl.sig;
+        tpl.palette = data.palette || tpl.palette;
+        tpl.font = data.font || tpl.font;
+        tpl.layout = data.layout || "grid";
+        tpl.cardStyle = data.cardStyle || "Soft & rounded cards";
+        tpl.rounded = tpl.cardStyle.indexOf("Sharp") === -1;
+        tpl.features = data.features || tpl.features;
+        tpl.products = (data.products || []).map(function(pr){
+          return { name: pr.name, desc: pr.desc, price: pr.price, badge: pr.badge || "", stock: pr.stock, source: "AI generated" };
+        });
+        tpl = normalizeProducts(tpl);
+        tpl.announcement = true; tpl.heroImage = true; tpl.badges = true;
+        return tpl;
+      }
+      function buildSampleStore(promptText){
+        var key = detectTemplate(promptText);
+        currentKey = key;
+        var tpl = normalizeProducts(clone(TEMPLATES[key]));
+        var shopName = $("shopNameIn").value.trim();
+        if (shopName){ tpl.name = shopName; tpl.slug = shopName.toLowerCase().replace(/[^a-z0-9]+/g,"").slice(0,24) + ".store"; }
+        return aiDecide(promptText, tpl, key);
+      }
       function generate(){
         if (generating) return;
         generating = true;
         var promptText = $("prompt").value.trim() || "Handmade crochet shop, cozy and minimal, pastel colors, limited stock";
+        var shopName = $("shopNameIn").value.trim();
         var btn = $("generateBtn");
         btn.disabled = true; btn.textContent = "Generating…";
         $("genOverlay").classList.add("on");
         $("genStatus").classList.add("on");
         closeCart();
 
+        // Live AI call: Groq via /api/generate. Starts now, in parallel with the steps.
+        var livePromise = fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: promptText, shopName: shopName })
+        }).then(function(r){
+          if (!r.ok) throw new Error("generate " + r.status);
+          return r.json();
+        });
+
         var lis = $("genStatus").querySelectorAll("li");
         lis.forEach(function(li){ li.className = ""; li.querySelector("span").className = "waitdot"; li.querySelector("span").textContent = "·"; });
 
+        function finish(tpl, msg){
+          store = tpl;
+          cart = {};
+          markDirtySilent();
+          renderStore(true);
+          var hero = $("heroImgEl");
+          if (hero) hero.alt = (store.tagline || store.name || "Store preview");
+          $("genOverlay").classList.remove("on");
+          btn.disabled = false; btn.innerHTML = "✦&ensp;Generate my store";
+          generating = false;
+          setStep(4, false);
+          toast(msg);
+        }
         var step = 0;
         function advance(){
           if (step > 0){
@@ -1467,21 +1525,14 @@
             prev.querySelector("span").className = "check"; prev.querySelector("span").textContent = "✓";
           }
           if (step >= lis.length){
-            var key = detectTemplate(promptText);
-            currentKey = key;
-            var tpl = normalizeProducts(clone(TEMPLATES[key]));
-            var shopName = $("shopNameIn").value.trim();
-            if (shopName){ tpl.name = shopName; tpl.slug = shopName.toLowerCase().replace(/[^a-z0-9]+/g,"").slice(0,24) + ".store"; }
-            tpl = aiDecide(promptText, tpl, key);
-            store = tpl;
-            cart = {};
-            markDirtySilent();
-            renderStore(true);
-            $("genOverlay").classList.remove("on");
-            btn.disabled = false; btn.innerHTML = "✦&ensp;Generate my store";
-            generating = false;
-            setStep(4, false);
-            toast("Store generated — add or edit products in the dashboard, then publish");
+            $("genOverlayText").textContent = "Waiting for the AI to finish writing your store…";
+            livePromise.then(function(data){
+              if (!data || !data.products || data.products.length < 2) throw new Error("AI returned too few products");
+              finish(buildStoreFromApi(data, promptText, shopName), "Store generated by AI — add or edit products in the dashboard, then publish");
+            }).catch(function(err){
+              console.error("Live generation failed, using sample store:", err);
+              finish(buildSampleStore(promptText), "AI server unavailable — showing a sample store instead. Check the Groq key in Vercel and try again.");
+            });
             return;
           }
           var li = lis[step]; li.className = "working";
